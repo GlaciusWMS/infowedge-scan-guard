@@ -34,10 +34,10 @@ Apps like Power Apps cannot send broadcasts themselves. This small app does it f
 
 - **Background guard.** A foreground service watches the device cameras (`CameraManager.AvailabilityCallback`).
   When a camera goes from *in use* to *free*, it waits 0.8 s and restarts InfoWedge (off, 0.7 s, on).
-  Camera changes caused by its own restart are learned and ignored, so it cannot loop.
+  It restarts 0.8 s after the last release (an app that closes and reopens the camera gets one restart), at most 6 times a minute.
 - **Link for apps.** Opening `scanguard://restart` restarts the scanner and returns straight to the calling app.
   In Power Apps: `Launch("scanguard://restart")` (for example right after a photo).
-- Starts again after a reboot. The status screen shows the last 30 events and has a *Restart scanner now* button.
+- Starts by itself after a reboot and after an update. The status screen shows the last 30 events and has a *Restart scanner now* button.
 
 No data is collected or sent anywhere; the app only talks to InfoWedge on the device.
 
@@ -52,7 +52,14 @@ Locally: JDK 17 + Gradle 8.7 + Android SDK 34, then `gradle assembleDebug`.
 adb install app-debug.apk
 ```
 
-Then open **InfoWedge Scan Guard** once (allow notifications) and set its battery use to **Unrestricted**.
+Then start it once. Android only lets a newly installed app start itself on boot after its first launch:
+
+```
+adb shell am start -n com.scanguard.infowedge/.MainActivity
+```
+
+(or open **InfoWedge Scan Guard** on the device), allow notifications, and set its battery use to **Unrestricted**.
+From then on it starts by itself after every reboot and after every update.
 Update with `adb install -r app-debug.apk`; if Android refuses because the signature changed (each CI build uses its own debug key), run `adb uninstall com.scanguard.infowedge` first.
 
 ## Compatibility
